@@ -1,0 +1,58 @@
+{
+  "name": "ai-companion-backend",
+  "version": "2.1.0",
+  "description": "AI Companion 2.1 - Enterprise Backend Infrastructure",
+  "main": "dist/api/main.js",
+  "scripts": {
+    "dev": "npm run api:dev",
+    "build": "npm-run-all build:ts",
+    "build:ts": "tsc",
+    "api:dev": "nodemon --exec ts-node src/api/main.ts",
+    "worker:gacha": "nodemon --exec ts-node src/worker/start-gacha-worker.ts",
+    "worker:script": "nodemon --exec ts-node src/worker/start-ai-script-worker.ts",
+    "worker:all": "concurrently \"npm run worker:gacha\" \"npm run worker:script\"",
+    "init-db": "ts-node src/scripts/init-db.ts",
+    "start": "node dist/api/main.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.29.0",
+    "express": "^4.21.2",
+    "ioredis": "^5.5.0",
+    "pg": "^8.13.1",
+    "pg-pool": "^3.6.2",
+    "dotenv": "^16.4.7",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "eventemitter2": "^6.4.9",
+    "uuid": "^11.0.3",
+    "class-validator": "^0.14.1",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.7.3",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.1.9",
+    "concurrently": "^9.1.2",
+    "npm-run-all": "^4.1.5"
+  },
+  "keywords": [
+    "ai-companion",
+    "rpg",
+    "game-backend",
+    "postgres",
+    "redis",
+    "bullmq",
+    "typescript"
+  ],
+  "author": "zxhsuan",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
