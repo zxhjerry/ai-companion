@@ -1,0 +1,266 @@
+/**
+ * ImageLoader.css - 图片加载器样式
+ */
+
+/* ==========================================
+ * 容器
+ * ========================================== */
+
+.image-loader {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* ==========================================
+ * 骨架屏（Skeleton）
+ * ========================================== */
+
+.image-skeleton {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 0%,
+        #e0e0e0 50%,
+        #f0f0f0 100%
+    );
+    background-size: 200% 100%;
+    z-index: 1;
+}
+
+/* 骨架屏动画 */
+@keyframes skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-pulse {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* 骨架屏淡出动画 */
+.image-loader-skeleton.fading-out {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* ==========================================
+ * 实际图片
+ * ========================================== */
+
+.image-loader-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 2;
+}
+
+/* 图片加载中的模糊效果 */
+.image-loader-image:not(.loaded) {
+    filter: blur(10px);
+}
+
+/* ==========================================
+ * 占位图（Placeholder）
+ * ========================================== */
+
+.image-loader-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 2;
+}
+
+/* ==========================================
+ * 错误提示
+ * ========================================== */
+
+.image-loader-error {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+    color: #999;
+    font-size: 14px;
+    z-index: 3;
+}
+
+/* ==========================================
+ * 进场动画
+ * ========================================== */
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.image-loader.animate-in {
+    animation: fade-in 0.3s ease-out forwards;
+}
+
+/* ==========================================
+ * 加载指示器（Loading Spinner）
+ * ========================================== */
+
+.image-loader.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    margin-left: -20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 4;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ==========================================
+ * 图片画廊（Image Gallery）
+ * ========================================== */
+
+.image-gallery {
+    width: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.image-gallery-row {
+    display: flex;
+    gap: 8px;
+}
+
+.image-gallery-item {
+    flex: 1;
+    padding: 4px;
+    transition: transform 0.2s ease;
+}
+
+.image-gallery-item:hover {
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+/* ==========================================
+ * 响应式
+ * ========================================== */
+
+/* 手机端 */
+@media (max-width: 640px) {
+    .image-gallery-row {
+        gap: 4px;
+    }
+
+    .image-gallery-item {
+        padding: 2px;
+    }
+}
+
+/* 平板端 */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .image-gallery-row {
+        gap: 6px;
+    }
+
+    .image-gallery-item {
+        padding: 3px;
+    }
+}
+
+/* ==========================================
+ * 性能优化
+ * ========================================== */
+
+/* 图片加载后移除模糊滤镜（减少渲染负担） */
+.image-loader-image.loaded {
+    will-change: opacity;
+}
+
+/* 使用 GPU 加速 */
+.image-loader-image,
+.image-loader-placeholder,
+.image-skeleton {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* ==========================================
+ * 可访问性（Accessibility）
+ * ========================================== */
+
+/* 聚焦时的可见性 */
+.image-loader:focus-within {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+}
+
+/* 屏幕阅读器支持 */
+.image-loader-error::before {
+    content: '⚠️ ';
+}
+
+/* ==========================================
+ * 主题支持（Vaporwave 风格）
+ * ========================================== */
+
+.image-loader.vaporwave .skeleton-pulse {
+    background: linear-gradient(
+        90deg,
+        #0a0a1a 0%,
+        #6c5ce7 50%,
+        #0a0a1a 100%
+    );
+}
+
+.image-loader.vaporwave .image-loader-error {
+    background-color: #0a0a1a;
+    color: #6c5ce7;
+    border: 1px solid #6c5ce7;
+}
+
+.image-loader.vaporwave.loading::before {
+    border-color: #0a0a1a;
+    border-top-color: #ff7675;
+}

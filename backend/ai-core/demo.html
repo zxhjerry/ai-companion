@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Companion 2.1 - 完整演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0a0a1a;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(108, 92, 231, 0.3);
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #a29bfe, #00cec9, #ff7675);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .sidebar {
+            background: rgba(26, 26, 46, 0.6);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid rgba(108, 92, 231, 0.2);
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #a0a0b0;
+        }
+
+        .character-card {
+            background: rgba(37, 41, 56, 0.6);
+            border: 2px solid rgba(108, 92, 231, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            background: rgba(37, 41, 56, 0.8);
+            box-shadow: 0 20px 40px rgba(108, 92, 231, 0.1);
+            border-color: rgba(0, 206, 201, 0.4);
+        }
+
+        .avatar-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff7675, #fd79a8, #00cec9);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+
+        .stats-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .stats-label {
+            width: 60px;
+            font-size: 16px;
+        }
+
+        .stats-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(108, 92, 231, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .stats-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+        }
+
+        .stats-value {
+            width: 40px;
+            text-align: right;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .messages {
+            flex: 1;
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(26, 26, 46, 0.6);
+            border: 2px solid rgba(108, 92, 231, 0.2);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 20px;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff7675, #fd79a8, #00cec9);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 12px;
+        }
+
+        .message-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00cec9;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .message-ai {
+            background: rgba(37, 41, 56, 0.8);
+            border: 2px solid rgba(0, 206, 201, 0.3);
+            border-radius: 20px 20px 5px 20px;
+            max-width: 80%;
+        }
+
+        .message-user {
+            background: linear-gradient(135deg, #6c5ce7, #4834d4);
+            border: 2px solid #a29bfe;
+            border-radius: 20px 20px 5px 20px;
+            max-width: 80%;
+            margin-left: auto;
+        }
+
+        .message-hidden-event,
+        .message-item-drop {
+            background: rgba(255, 118, 117, 0.1);
+            border: 2px solid rgba(255, 118, 117, 0.5);
+            border-radius: 15px;
+            padding: 12px;
+            margin: 16px 0;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .item-card {
+            background: rgba(162, 155, 254, 0.1);
+            border: 2px solid rgba(162, 155, 254, 0.5);
+            border-radius: 15px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .item-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #a29bfe;
+            margin-bottom: 8px;
+        }
+
+        .item-rarity {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 10px;
+            background: rgba(108, 92, 231, 0.2);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .item-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .item-stat {
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .input-area {
+            padding: 16px;
+            background: rgba(26, 26, 46, 0.8);
+            border: 2px solid rgba(108, 92, 231, 0.3);
+            border-radius: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            background: rgba(26, 26, 46, 0.6);
+            border: 2px solid rgba(108, 92, 231, 0.3);
+            border-radius: 30px;
+            padding: 8px 16px;
+        }
+
+        .message-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-size: 16px;
+        }
+
+        .send-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6c5ce7, #00cec9);
+            border: 2px solid rgba(0, 206, 201, 0.4);
+            color: white;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .send-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.4);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, rgba(0, 206, 201, 0.2), rgba(108, 92, 231, 0.2));
+            border-radius: 30px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #00cec9;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(108, 92, 231, 0.1), transparent);
+            filter: blur(60px);
+            animation: floatOrb 8s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            top: 10%;
+            left: -50px;
+            width: 250px;
+            height: 250px;
+        }
+
+        .orb-2 {
+            bottom: 20%;
+            right: -30px;
+            width: 180px;
+            height: 180px;
+            animation-delay: 3s;
+        }
+
+        .orb-3 {
+            top: 50%;
+            left: 20%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 6s;
+        }
+
+        @keyframes floatOrb {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateY(-40px) translateX(20px);
+                opacity: 0.8;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-text">AI Companion 2.1</span>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span class="status-text">在线</span>
+            </div>
+        </header>
+
+        <main class="main">
+            <aside class="sidebar">
+                <h2>AI 伴侣</h2>
+                <div class="character-card" onclick="selectCharacter('luna')">
+                    <div class="avatar-circle">👩 L</div>
+                    <h3>Luna</h3>
+                    <div class="stats-row">
+                        <span class="stats-label">⚔️ 力量</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 70%"></div>
+                        </div>
+                        <span class="stats-value">70</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">🧠 智力</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 85%"></div>
+                        </div>
+                        <span class="stats-value">85</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">✨ 魅力</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 90%"></div>
+                        </div>
+                        <span class="stats-value">90</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">🌟 颜值</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 95%; background: linear-gradient(135deg, #ff7675, #fd79a8, #00cec9)"></div>
+                        </div>
+                        <span class="stats-value">95</span>
+                    </div>
+                </div>
+
+                <div class="character-card" onclick="selectCharacter('max')">
+                    <div class="avatar-circle">👨 M</div>
+                    <h3>Max</h3>
+                    <div class="stats-row">
+                        <span class="stats-label">⚔️ 力量</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 80%"></div>
+                        </div>
+                        <span class="stats-value">80</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">🧠 智力</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 60%"></div>
+                        </div>
+                        <span class="stats-value">60</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">✨ 魅力</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 70%"></div>
+                        </div>
+                        <span class="stats-value">70</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">🌟 颜值</span>
+                        <div class="stats-bar">
+                            <div class="stats-fill" style="width: 70%"></div>
+                        </div>
+                        <span class="stats-value">70</span>
+                    </div>
+                </div>
+            </aside>
+
+            <section>
+                <div class="messages" id="messages">
+                    <!-- 消息将在这里动态添加 -->
+                </div>
+
+                <div class="input-area">
+                    <div class="input-group">
+                        <input type="text" class="message-input" id="messageInput" placeholder="输入消息..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <button class="send-button" onclick="sendMessage()">➤</button>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="sidebar">
+                <h2>🎒 背包 (<span id="inventoryCount">0</span>)</h2>
+                <div id="inventory">
+                    <!-- 道具将在这里动态添加 -->
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        // ===== 模拟数据 =====
+        const characters = {
+            'luna': {
+                name: 'Luna',
+                appearance: 95,
+                luck: 90,
+                stats: { strength: 70, intelligence: 85, charisma: 90, appearance: 95 }
+            },
+            'max': {
+                name: 'Max',
+                appearance: 70,
+                luck: 50,
+                stats: { strength: 80, intelligence: 60, charisma: 70, appearance: 70 }
+            }
+        };
+
+        const inventory = [];
+        const messages = [];
+
+        // ===== 模拟 AI 回复 =====
+        const aiResponses = [
+            '真有意思！我很想了解更多！🌟️',
+            '我理解你的感受，我也有类似体验。',
+            '你说得对，这个话题很有意思！✨ 继续聊吧！',
+            '这个话题让我想起了一些有趣的事情...',
+            '哈哈，你总是能想到这么有趣的东西！'
+        ];
+
+        // ===== 初始化 =====
+        let selectedCharacter = 'luna';
+
+        // ===== 添加欢迎消息 =====
+        function init() {
+            addMessage('assistant', `嘿！我是「${characters['luna'].name}」✨ 很高兴认识你！`, 'Luna');
+        }
+
+        // ===== 添加消息 =====
+        function addMessage(type, content, characterName = '') {
+            const messagesDiv = document.getElementById('messages');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            if (type === 'assistant') {
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-avatar">${characterName.charAt(0)}</div>
+                        <span class="message-name">${characterName}</span>
+                    </div>
+                    <div class="message-bubble message-ai">
+                        <p>${content}</p>
+                    </div>
+                `;
+            } else if (type === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="message-bubble message-user">
+                        <p>${content}</p>
+                    </div>
+                `;
+            } else if (type === 'hidden-event') {
+                messageDiv.innerHTML = `
+                    <div class="message-hidden-event">
+                        <h3>🎬 ${content}</h3>
+                    </div>
+                `;
+            } else if (type === 'item-drop') {
+                messageDiv.innerHTML = `
+                    <div class="message-item-drop">
+                        <h3>🎁 ${content}</h3>
+                    </div>
+                `;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // ===== 发送消息 =====
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 添加用户消息
+            addMessage('user', message);
+            input.value = '';
+            
+            // 模拟 AI 回复（延迟）
+            setTimeout(() => {
+                const aiResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+                
+                // 模拟打字效果
+                let displayText = '';
+                const messagesDiv = document.getElementById('messages');
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-avatar">🤖</div>
+                        <span class="message-name">${characters[selectedCharacter].name}</span>
+                    </div>
+                    <div class="message-bubble message-ai">
+                        <p id="typing-${Date.now()}"></p>
+                    </div>
+                `;
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                const typingContainer = messageDiv.querySelector('p');
+                let charIndex = 0;
+                
+                const typeInterval = setInterval(() => {
+                    if (charIndex < aiResponse.length) {
+                        typingContainer.textContent += aiResponse.charAt(charIndex);
+                        charIndex++;
+                    } else {
+                        clearInterval(typeInterval);
+                    }
+                }, 50);
+                
+                // 模拟随机事件触发
+                setTimeout(() => {
+                    // 10% 概率触发隐藏事件
+                    if (Math.random() < 0.1) {
+                        const hiddenEvents = [
+                            '🎭 隐藏秘密：角色的秘密往事浮现',
+                            '🎬 隐藏剧情：隐藏的世界分支开启',
+                            '🔮 隐藏事件：一段深埋的记忆浮出水面'
+                        ];
+                        
+                        const event = hiddenEvents[Math.floor(Math.random() * hiddenEvents.length)];
+                        addMessage('hidden-event', event);
+                    }
+                    
+                    // 10% 概率触发道具掉落
+                    if (Math.random() < 0.1) {
+                        const itemNames = ['神秘水晶', '发光宝石', '古代卷轴', '魔法药水'];
+                        const itemRarities = [95, 80, 65, 50];
+                        
+                        const itemName = itemNames[Math.floor(Math.random() * itemNames.length)];
+                        const itemRarity = itemRarities[Math.floor(Math.random() * itemRarities.length)];
+                        
+                        addItem({
+                            name: itemName,
+                            rarity: itemRarity,
+                            stats: { luck: Math.floor(Math.random() * 20) + 10 },
+                            effect: `获得临时属性加成`
+                        });
+                        
+                        addMessage('item-drop', `🎁 发现新道具：${itemName}\n稀有度: ${itemRarity} | 获得临时属性加成`);
+                    }
+                }, 1500);
+            }, 800);
+        }
+
+        // ===== 选择角色 =====
+        function selectCharacter(characterId) {
+            selectedCharacter = characterId;
+            const char = characters[characterId];
+            
+            addMessage('assistant', `嘿！我是「${char.name}」✨ 咱们开始聊吧！`, char.name);
+        }
+
+        // ===== 添加道具 =====
+        function addItem(item) {
+            inventory.push(item);
+            updateInventory();
+        }
+
+        // ===== 更新背包显示 =====
+        function updateInventory() {
+            const inventoryDiv = document.getElementById('inventory');
+            const countSpan = document.getElementById('inventoryCount');
+            
+            countSpan.textContent = inventory.length;
+            
+            if (inventory.length === 0) {
+                inventoryDiv.innerHTML = '<p style="text-align: center; padding: 40px 0; color: #707080;">📦 背包是空的</p>';
+                return;
+            }
+            
+            inventoryDiv.innerHTML = inventory.map(item => `
+                <div class="item-card">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-rarity">稀有度 ${item.rarity}</div>
+                    <div class="item-stats">
+                        ${Object.entries(item.stats).map(([key, value]) => `
+                            <div class="item-stat">
+                                <div style="font-size: 10px; color: #a0a0b0;">${key}</div>
+                                <div style="font-size: 14px; font-weight: bold;">+${value}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p style="font-size: 12px; font-style: italic;">${item.effect}</p>
+                </div>
+            `).join('');
+        }
+
+        // ===== 页面加载 =====
+        window.onload = function() {
+            updateInventory();
+            init();
+        };
+    </script>
+</body>
+</html>

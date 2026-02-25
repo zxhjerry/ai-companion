@@ -1,73 +1,97 @@
-# ===== Node.js =====
+# AI Companion 2.1 - Git Ignore 文件
+
+# ==========================================
+# 依赖目录
+# ==========================================
+
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnp
-.pnp.js
+.pnpm-store/
+.npm/
+.yarn/cache/
+
+# ==========================================
+# 构建产物
+# ==========================================
 
 dist/
-dist-ssr/
-*.local
+build/
+.next/
+out/
+*.log
+logs/
+
+# ==========================================
+# 数据库文件
+# ==========================================
+
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+database/
+
+# ==========================================
+# 环境变量
+# ==========================================
 
 .env
-.env.development.local
-.env.test.local
-.env.production.local
+.env.local
+.env.*.local
 
-# ===== Python =====
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# ==========================================
+# IDE 配置
+# ==========================================
 
-# ===== 常规 =====
-.DS_Store
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
+.DS_Store
 
-# ===== 测试 =====
+# ==========================================
+# 临时文件
+# ==========================================
+
+tmp/
+temp/
+*.tmp
+
+# ==========================================
+# 测试覆盖率
+# ==========================================
+
 coverage/
 .nyc_output/
 
-# ===== IDE =====
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
+# ==========================================
+# 开发工具
+# ==========================================
 
-# ===== 日志 =====
-*.log
-lerna-debug.log*
+.cache/
+.parcel-cache/
+.turbo/
 
-# ===== 忽略模型文件（大文件）======
-*.pt
-*.pth
-*.ckpt
-*.bin
+# ==========================================
+# 特定文件
+# ==========================================
 
-# ===== 部署 =====
-.vercel
-.netlify
-build/
+# SQLite 数据库
+ai_companion.db
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 临时端口检查脚本
+check-ports.py
+check-ports_v2.py
+
+# 部署脚本（临时）
+fix-deploy.py
+
+# Ngrok 错误修复脚本
+fix-ngrok-error.sh

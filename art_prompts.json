@@ -1,0 +1,82 @@
+[
+  {
+    "prompt": "beautiful a female with short brown hair and brown eyes, elegant and sophisticated appearance, radiant beauty, wearing casual attire, walking gracefully, close-up portrait, sophisticated, minimalist, clean aesthetic, 4K resolution, highly detailed, sharp focus, professional illustration, photorealistic",
+    "style": "photorealistic",
+    "quality_level": "ultra-high",
+    "appearance_score": 85,
+    "gender": "female",
+    "name": "Variations",
+    "metadata": {
+      "hair": "short brown",
+      "eyes": "brown",
+      "style": "casual",
+      "camera_angle": "close-up portrait",
+      "pose": "walking gracefully",
+      "atmosphere": "sophisticated, minimalist, clean aesthetic"
+    }
+  },
+  {
+    "prompt": "beautiful a female with short brown hair and brown eyes, elegant and sophisticated appearance, radiant beauty, wearing casual attire, looking at viewer, dynamic angle, sophisticated, minimalist, clean aesthetic, 4K resolution, highly detailed, sharp focus, professional illustration, photorealistic",
+    "style": "photorealistic",
+    "quality_level": "ultra-high",
+    "appearance_score": 85,
+    "gender": "female",
+    "name": "Variations",
+    "metadata": {
+      "hair": "short brown",
+      "eyes": "brown",
+      "style": "casual",
+      "camera_angle": "medium shot",
+      "pose": "looking at viewer",
+      "atmosphere": "sophisticated, minimalist, clean aesthetic"
+    }
+  },
+  {
+    "prompt": "beautiful a female with short brown hair and brown eyes, elegant and sophisticated appearance, radiant beauty, wearing casual attire, walking gracefully, full body portrait, sophisticated, minimalist, clean aesthetic, 4K resolution, highly detailed, sharp focus, professional illustration, photorealistic",
+    "style": "photorealistic",
+    "quality_level": "ultra-high",
+    "appearance_score": 85,
+    "gender": "female",
+    "name": "Variations",
+    "metadata": {
+      "hair": "short brown",
+      "eyes": "brown",
+      "style": "casual",
+      "camera_angle": "full body portrait",
+      "pose": "looking at viewer",
+      "atmosphere": "sophisticated, minimalist, clean aesthetic"
+    }
+  },
+  {
+    "prompt": "beautiful a female with short brown hair and brown eyes, elegant and sophisticated appearance, radiant beauty, wearing casual attire, looking at viewer, three-quarter shot, sophisticated, minimalist, clean aesthetic, 4K resolution, highly detailed, sharp focus, professional illustration, photorealistic",
+    "style": "photorealistic",
+    "quality_level": "ultra-high",
+    "appearance_score": 85,
+    "gender": "female",
+    "name": "Variations",
+    "metadata": {
+      "hair": "short brown",
+      "eyes": "brown",
+      "style": "casual",
+      "camera_angle": "three-quarter shot",
+      "pose": "sitting elegantly",
+      "atmosphere": "sophisticated, minimalist, clean aesthetic"
+    }
+  },
+  {
+    "prompt": "beautiful a female with short brown hair and brown eyes, elegant and sophisticated appearance, radiant beauty, wearing casual attire, looking at viewer, three-quarter shot, sophisticated, minimalist, clean aesthetic, 4K resolution, highly detailed, sharp focus, professional illustration, photorealistic",
+    "style": "photorealistic",
+    "quality_level": "ultra-high",
+    "appearance_score": 85,
+    "gender": "female",
+    "name": "Variations",
+    "metadata": {
+      "hair": "short brown",
+      "eyes": "brown",
+      "style": "casual",
+      "camera_angle": "full body portrait",
+      "pose": "sitting elegantly",
+      "atmosphere": "sophisticated, minimalist, clean aesthetic"
+    }
+  }
+]
