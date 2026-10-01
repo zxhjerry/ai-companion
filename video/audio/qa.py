@@ -12,7 +12,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import SR, BUILD, load_cues, read, a2db, true_peak_db, to_stereo, hpf
+from common import SR, BUILD, load_cues, read, a2db, true_peak_db, to_stereo
 
 import matplotlib
 matplotlib.use('Agg')
@@ -170,8 +170,8 @@ def main():
     info = sf.info(os.path.join(BUILD, 'final_audio.wav'))
     print('=' * 72)
     print(f'FINAL  {info.samplerate} Hz  {info.channels} ch  {info.subtype}  {info.duration:.3f} s')
-    print('FINAL  integrated %.2f LUFS   true peak %.2f dBTP   sample peak %.2f dBFS' % (
-        lufs(final), true_peak_db(final), a2db(np.max(np.abs(final)))))
+    print('FINAL  integrated %.2f LUFS   true peak %.2f dBTP (4x) / %.2f dBTP (8x)   sample peak %.2f dBFS' % (
+        lufs(final), true_peak_db(final), true_peak_db(final, 8), a2db(np.max(np.abs(final)))))
     bd = os.path.join(BUILD, 'mix_buses')
     voice = read(os.path.join(bd, 'voice.wav'))
     mbus = read(os.path.join(bd, 'music.wav'))
@@ -201,6 +201,50 @@ def main():
 
         lv, lm, lmu, lmg, lx = L(vs), L(m), L(ms), L(mg), L(x)
         print(f'   {s["key"]:8s} {lv:7.1f} {lm:7.1f} {lmu:9.1f} {lv - lmu:6.1f} {lmg:7.1f} {lx:7.1f}')
+    # consonant-band clarity: voice vs music / sfx in 1-4 kHz over voiced 20 ms frames
+    print('-- consonant-band clarity (1-4 kHz, voiced frames): voice minus music / voice minus sfx (dB)')
+    from common import bpf
+    vb = bpf(to_stereo(voice).mean(axis=1), 1000, 4000, 4)
+    mb = bpf(to_stereo(mbus).mean(axis=1), 1000, 4000, 4)
+    xb = bpf(to_stereo(sbus).mean(axis=1), 1000, 4000, 4)
+    smask = np.zeros(len(vb), bool)
+    for sa, sb_ in cues['speech']:
+        smask[int(sa * SR):int(sb_ * SR)] = True
+    L = int(0.02 * SR)
+    worst = []
+    for s in cues['sections']:
+        a, b = int(s['t0'] * SR), int(s['t1'] * SR)
+        k = (b - a) // L
+        fv = np.mean(vb[a:a + k * L].reshape(k, L) ** 2, 1)
+        fm = np.mean(mb[a:a + k * L].reshape(k, L) ** 2, 1)
+        fx = np.mean(xb[a:a + k * L].reshape(k, L) ** 2, 1)
+        km = smask[a:a + k * L].reshape(k, L).all(1)
+        act = km & (10 * np.log10(fv + 1e-15) > 10 * np.log10(np.median(fv[km]) + 1e-15) - 15)
+        rv = 10 * np.log10(fv[act].mean())
+        dm = rv - 10 * np.log10(fm[act].mean() + 1e-15)
+        dx = rv - 10 * np.log10(fx[act].mean() + 1e-15)
+        worst.append((min(dm, dx), s['key']))
+        print(f'   {s["key"]:8s} voice-music {dm:5.1f}   voice-sfx {dx:5.1f}')
+    print(f'   lowest: {min(worst)[0]:.1f} dB ({min(worst)[1]})')
+    # SFX events vs the voice at the same moment (momentary, 400 ms, K-weighted)
+    print('-- SFX events vs voice (momentary loudness over the 400 ms after each event)')
+    rows = []
+    for e in cues['sfx']:
+        a = e['t']
+        xs = seg(sbus, a, a + 0.45)
+        vs = seg(voice, a, a + 0.45)
+        if len(xs) < int(0.45 * SR):
+            continue
+        with np.errstate(divide='ignore'):
+            lx = meter.integrated_loudness(to_stereo(xs)) if np.max(np.abs(xs)) > 1e-7 else -99
+            lv = meter.integrated_loudness(to_stereo(vs)) if np.max(np.abs(vs)) > 1e-7 else -99
+        rows.append((lx - lv if lv > -45 else None, lx, lv, e))
+    over = [r for r in rows if r[0] is not None]
+    over.sort(key=lambda r: -r[0])
+    print(f'   events overlapping speech: {len(over)}; SFX louder than voice-3 LU: '
+          f'{sum(1 for r in over if r[0] > -3)}; louder than voice: {sum(1 for r in over if r[0] > 0)}')
+    for d, lx, lv, e in over[:12]:
+        print(f'   {e["t"]:8.3f} {e["type"]:13s} gain {e["gain_db"]:+5.0f}  sfx {lx:6.1f}  voice {lv:6.1f}  diff {d:+5.1f} LU')
     spectrogram_png(final, os.path.join(QA, 'final_spectrogram.png'), 'final_audio.wav', cues)
     envelope_png([('final', final, 'k'), ('voice', voice, 'tab:orange'), ('music bus', mbus, 'tab:blue'),
                   ('sfx bus', sbus, 'tab:green')], os.path.join(QA, 'envelopes.png'), cues, 'RMS (100 ms)')

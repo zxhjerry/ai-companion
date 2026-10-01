@@ -6,8 +6,7 @@ noted) and takes an explicit `seed` when it uses noise.
 """
 import numpy as np
 
-from common import (SR, nsamp, lpf, hpf, bpf, expdecay, ramp, adsr, fade,
-                    midi_hz, db2a)
+from common import SR, nsamp, lpf, hpf, bpf, adsr, fade, midi_hz
 
 
 def _t(n):

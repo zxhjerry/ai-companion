@@ -13,9 +13,9 @@ from scipy import signal
 
 SR = 48000
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRATCH = '/tmp/claude-0/-home-user-ai-companion/b947a8ec-f5ca-50b2-80d8-dee01dde958b/scratchpad'
-BUILD = os.environ.get('BUILD', os.path.join(SCRATCH, 'build'))
-ASSETS = os.environ.get('ASSETS', os.path.join(SCRATCH, 'assets'))
+VIDEO = os.path.dirname(HERE)
+BUILD = os.environ.get('BUILD', os.path.join(VIDEO, 'build'))
+ASSETS = os.environ.get('ASSETS', os.path.join(VIDEO, '.models', 'assets'))
 SF2 = os.environ.get('SF2', os.path.join(ASSETS, 'generaluser-gs', 'GeneralUser-GS.sf2'))
 
 
@@ -236,8 +236,14 @@ def convolve(x, ir):
 
 # ------------------------------------------------------------- io
 def write(path, x, subtype='FLOAT'):
+    """FLOAT goes through scipy (libsndfile adds a timestamped PEAK chunk to
+    float WAVs, which would make reproducible builds differ byte-wise)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    sf.write(path, np.asarray(x, dtype=np.float32), SR, subtype=subtype)
+    if subtype == 'FLOAT':
+        from scipy.io import wavfile
+        wavfile.write(path, SR, np.asarray(x, dtype=np.float32))
+    else:
+        sf.write(path, np.asarray(x, dtype=np.float64), SR, subtype=subtype)
 
 
 def read(path):
@@ -255,10 +261,20 @@ def peak_db(x):
     return a2db(np.max(np.abs(x)) + 1e-20)
 
 
-def true_peak_db(x, os_factor=4):
+def true_peak_db(x, os_factor=4, chunk_s=20.0):
+    """oversampled (inter-sample) peak, processed in overlapping chunks"""
     x = to_stereo(x)
-    up = signal.resample_poly(x, os_factor, 1, axis=0)
-    return a2db(np.max(np.abs(up)) + 1e-20)
+    n = len(x)
+    C = int(chunk_s * SR)
+    pad = 512
+    pk = 0.0
+    for i in range(0, n, C):
+        a, b = max(0, i - pad), min(n, i + C + pad)
+        up = signal.resample_poly(x[a:b], os_factor, 1, axis=0)
+        lo = (i - a) * os_factor
+        hi = lo + min(C, n - i) * os_factor
+        pk = max(pk, float(np.max(np.abs(up[lo:hi]))))
+    return a2db(pk + 1e-20)
 
 
 def midi_hz(m):

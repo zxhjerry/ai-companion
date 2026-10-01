@@ -37,6 +37,7 @@ TRACKS = {
     'strings': dict(prog=49, bank=0, fam='strings', pan=0.0, gain=0, ir='hall', send=0.32),
     'violins': dict(prog=48, bank=0, fam='strings', pan=-0.2, gain=-1, ir='hall', send=0.30),
     'spicc':   dict(prog=48, bank=0, fam='strings', pan=0.15, gain=0, ir='room', send=0.25),
+    'sstab':   dict(prog=48, bank=0, fam='strings', pan=0.0, gain=0, ir='hall', send=0.25),    # fast-attack tutti stabs
     'trem':    dict(prog=44, bank=0, fam='strings', pan=0.1, gain=-2, ir='hall', send=0.30),
     'cello':   dict(prog=42, bank=0, fam='strings', pan=-0.18, gain=0, ir='hall', send=0.25),
     'cbass':   dict(prog=43, bank=0, fam='strings', pan=0.12, gain=0, ir='hall', send=0.18),
@@ -505,6 +506,15 @@ def apply_ops(buf, sec):
             j1 = min(n, i + len(seg))
             buf[i:j1] = seg[:j1 - i]
             buf[j1:idx(until)] = 0
+        elif kind == 'wow':                        # ('wow', depth_ms, rate_hz): lo-fi tape wow
+            depth = op[1] / 1000 * SR
+            rate = op[2]
+            k = np.arange(n)
+            d = depth * 0.5 * (1 - np.cos(2 * np.pi * rate * k / SR)) \
+                + 0.25 * depth * 0.5 * (1 - np.cos(2 * np.pi * rate * 2.7 * k / SR))
+            pos = np.clip(k - d, 0, n - 1)
+            for c in range(buf.shape[1]):
+                buf[:, c] = np.interp(pos, k, buf[:, c])
         elif kind == 'gain':                       # ('gain', [(t, dB), ...])
             if tvec is None:
                 tvec = a + np.arange(n) / SR

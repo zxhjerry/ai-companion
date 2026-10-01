@@ -25,11 +25,9 @@ import time
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from common import (SR, BUILD, nsamp, db2a, load_cues, write, midi_hz, nm, env_points,
-                    lpf, hpf, bpf, fade, ramp)
+from common import (SR, BUILD, nsamp, db2a, load_cues, write, midi_hz, nm, env_points, fade, ramp)
 import synths as S
-from score_engine import (Sec, Grid, tones, root, voicing, render_sections, assemble,
-                          FAMILIES, TRACKS)
+from score_engine import (Sec, Grid, tones, root, voicing, render_sections, assemble, FAMILIES)
 
 N = nm
 CUES = load_cues()
@@ -109,7 +107,7 @@ def piano_flow(s, g, b0, b1, ch, vel=48, trk='piano', top=None, oct_=2, pat=(0, 
     while b < b1 - 1e-6:
         p = t[pat[k % len(pat)] % len(t)]
         v = vel + (6 if k % len(pat) == 0 else 0) - 3 * (k % 2)
-        s.note(trk, g(b), g.d(b, step * 2.5), p, v, human=human if b > b0 else 0)
+        s.note(trk, g(b), g.d(b, min(step * 2.5, b1 - b + 0.05)), p, v, human=human if b > b0 else 0)
         k += 1
         b += step
     if top is not None:
@@ -141,11 +139,28 @@ def koto_ost(s, g, b0, b1, ch, vel=60, lo=57, hi=78, pat=(0, 2, 4, 2, 3, 2, 4, 2
         b += step
 
 
+def tutti(s, t, bass, chord, vel=110, cymbal=True, dur=0.6, taiko=True, crash_db=None):
+    """fast-attack orchestral hit exactly at t: timpani, taiko, string stab
+    (with its own low octave) and concert cymbal.  Piano / sustained bass are
+    left to the calling section so no two notes of one pitch collide."""
+    b = N(bass) if isinstance(bass, str) else bass
+    s.note('timp', t, 1.8, b + 12 if b < N('F#1') + 12 else b, vel)
+    if taiko:
+        s.note('taiko', t, 1.5, 'D2', min(127, vel + 6))
+    s.chord('sstab', t, dur, [b + 12 if b < N('E1') + 12 else b] + list(chord), min(127, vel))
+    s.cc('sstab', t - 0.01, 11, 127)
+    if cymbal:
+        s.note('okit', t, 3.0, 59, min(127, vel))
+    if crash_db is not None:
+        s.add('perc', t, S.crash(seed=int(t * 10), dur=3.0), gain_db=crash_db)
+
+
 # ============================================================== sections
 def c_open(s):
     h = s.hits
     # low D drone (D1/D2/A2), breathing; recedes before the quiet line
     dr = S.sub_drone(14.8, [hz('D1'), hz('D2'), hz('A2')], [1.0, 0.6, 0.15], attack=3.0, release=2.2, grit=0.06, seed=1)
+    dr = dr * db2a(env_points(len(dr), [(0, 0), (s.hits['被看见'] - 0.4, 0), (s.hits['被看见'] + 0.3, -7), (14.8, -7)]))
     s.add('synth', 0.0, dr, gain_db=-17, ir='big', send=0.12)
     # breath -> solo dizi long note: scoop from F#4 into A4, vibrato, soft fall
     s.dizi(0.62, 2.45, 'A4', vel=74, slide=-3, slide_t=0.42, vib=0.2, vib_delay=0.7, fall=-1.0, fall_t=0.4,
@@ -161,8 +176,9 @@ def c_open(s):
     t = h['被看见']
     pad(s, 'strings', Grid([t - 0.2, t + 4], 60), 0, 3.2, ['D3', 'A3', 'E4', 'F#4', 'A4'], 72)
     s.expr('strings', [(t - 0.2, 35), (t + 0.5, 118), (t + 2.2, 92), (t + 3.2, 55)])
-    s.gliss('harp', t, t + 0.42, ['D3', 'A3', 'D4', 'E4', 'F#4', 'A4', 'D5'], vel=62, vel_end=70, dur=2.5)
-    s.chord('piano', t, 3.0, ['D2', 'F#4', 'A4', 'E5'], 52, roll=0.03)
+    s.gliss('harp', t, t + 0.42, ['D3', 'A3', 'D4', 'E4', 'F#4', 'A4', 'D5'], vel=80, vel_end=74, dur=2.5)
+    s.chord('piano', t, 3.0, ['D2', 'A2', 'F#4', 'A4', 'E5'], 66, roll=0.012)
+    s.note('celesta', t, 2.0, 'F#6', 50)
     s.pedal('piano', t + 0.02, t + 3.0)
     s.chord('oohs', t + 0.05, 2.6, ['D4', 'F#4', 'A4'], 55)
     s.expr('oohs', [(t, 30), (t + 0.8, 100), (t + 2.6, 40)])
@@ -180,7 +196,7 @@ def c_open(s):
     s.add('pads', h['quiet_start'] - 0.2, x, gain_db=-34, ir='big', send=0.3)
     # inhale into the drop: reverse cymbal ending exactly at 18.275
     rc = S.reverse_cymbal(0.62, seed=3)
-    s.add('perc', s.t1 - 0.62, rc, gain_db=-14)
+    s.add('perc', s.t1 - 0.62, rc, gain_db=-24)
     s.op('cut', s.t1)
 
 
@@ -292,6 +308,7 @@ def c_night(s):
     v = S.vinyl(s.t1 - s.t0 + 1.2, seed=7)
     v = fade(v, 1.5, 1.2)
     s.add('synth', s.t0, v, gain_db=-28)
+    s.op('wow', 2.4, 0.55)
     s.op('fadeout', s.t1, s.t1 + 1.0)
 
 
@@ -310,8 +327,11 @@ def c_craft(s):
     s.dizi(g(5.5), g.d(5.5, 0.5), 'B4', vel=64)
     s.dizi(g(6), g.d(6, 2.55), 'F#5', vel=72, grace='E5', vib=0.25, end_level=0.3)
     # seg2 triptych: harp gliss lands on G6/9; IV - iii - vi - V
-    s.gliss('harp', h['triptych'] - 0.42, h['triptych'], ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5'], vel=48,
-            vel_end=66, dur=2.0)
+    s.gliss('harp', h['triptych'] - 0.42, h['triptych'] - 0.06, ['D4', 'E4', 'A4', 'B4', 'D5'], vel=40,
+            vel_end=52, dur=1.6)
+    s.chord('harp', h['triptych'], 2.5, ['G3', 'D4', 'B4', 'E5'], 72)
+    s.note('cbass', h['triptych'], 3.0, 'G2', 70)
+    s.note('timp', h['triptych'], 1.2, 'G2', 52)
     plan = [(8, 'G'), (12, 'F#m'), (16, 'Bm'), (20, 'A')]
     vo = {'G': ['G2', 'D3', 'B3', 'E4'], 'F#m': ['F#2', 'E3', 'A3', 'B3'], 'Bm': ['B2', 'F#3', 'A3', 'D4'],
           'A': ['A2', 'E3', 'B3', 'D4']}
@@ -380,7 +400,6 @@ def c_traffic(s):
     s.g = g
     L = cut - s.t0 + 0.5
     n = nsamp(L)
-    tv = np.arange(n) / SR + s.t0
 
     def put(buf, t, x, gdb=0.0):
         i = nsamp(t - s.t0)
@@ -447,8 +466,8 @@ def c_realize(s):
     s.pedal('piano', g(0) + 0.01, g(9) - 0.05)
     # 错位: the pad slips out of tune, a low displaced octave answers
     t = h['dislocate']
-    s.chord('piano', t, 3.5, ['B0', 'B1'], 58)
-    s.note('piano', t + 0.11, 3.0, 'C2', 30)   # deliberate smear: the dislocation
+    s.chord('piano', t, 3.5, ['B0', 'B1'], 76)
+    s.note('piano', t + 0.11, 3.0, 'C2', 34)   # deliberate smear: the dislocation
     s.pedal('piano', t + 0.02, t + 3.0)
     s.note('piano', 122.45, 3.0, 'E5', 38)
     s.note('piano', 123.0, 3.0, 'D5', 34)
@@ -525,7 +544,8 @@ def c_tracks(s):
         s.chord('violins', t, 2.6 if last else 0.32, vo[2:], v - 10)
         s.chord('cbass', t, 2.6 if last else 0.4, vo[:1], v - 10)
         s.chord('piano', t, 2.0 if last else 0.6, vo[:2] + vo[3:5], v - 30)
-        s.chord('koto', t, 1.2, [N(p) for p in vo[3:]], v - 35)
+        nxt = h[hits[i + 1][0]] if i < 3 else t + 2.0
+        s.chord('koto', t, min(1.2, nxt - t - 0.05), [N(p) for p in vo[3:]], v - 35)
     s.expr('violins', [(h['不讨巧'], 120), (h['不讨巧'] + 2.2, 55)])
     s.op('fadeout', s.t1 - 0.2, s.t1 + 0.8)
 
@@ -660,7 +680,7 @@ def c_painter(s):
     # the rules changed: a music-box line (theme head in the minor colour)
     g4 = Grid([h['rules'], s.t1], 72, nbeats=[8])
     for bo, d, p, o in theme(0, 8):
-        s.nb('mbox', bo, d, p + 12, 70, legato=1.4)
+        s.note('mbox', g4(bo), g4.d(bo, d) * 1.4, p + 12, 70)
     x = S.warm_pad(s.t1 - h['rules'] + 1.5, [N(p) for p in ['B2', 'F#3', 'D4']], attack=2.0, release=2.0, cutoff=900,
                    seed=17)
     s.add('pads', h['rules'], x, gain_db=-17, ir='hall', send=0.3)
@@ -752,18 +772,17 @@ def c_march(s):
     # break_out: bright dizi call over the first downbeat
     s.dizi(g(3), g.d(3, 2.2), 'A5', vel=70, slide=-3, slide_t=0.22, vib=0.22, end_level=0.4)
     # ---- swell into 浪潮
-    s.expr('strings', [(g(3), 45), (g(27), 60), (g(45), 70), (g(53) - 0.05, 122)])
+    s.expr('strings', [(g(3), 45), (g(27), 60), (g(45), 70), (g(53) - 0.05, 104)])
     for k in range(int((53 - 47) * 6)):
         b = 47 + k / 6
-        s.nb('timp', b, 0.3, 'A1', 40 + 70 * k / 36, legato=1.0)
+        s.nb('timp', b, 0.3, 'A1', 34 + 50 * k / 36, legato=1.0)
     rc = S.reverse_cymbal(2.6, seed=22)
-    s.add('perc', h['浪潮'] - 2.6, rc, gain_db=-10)
+    s.add('perc', h['浪潮'] - 2.6, rc, gain_db=-20)
     s.gliss('harp', g(51), h['浪潮'], ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5', 'A5', 'B5', 'D6'],
             vel=50, vel_end=80, dur=2.0)
     # ---- 浪潮: tutti D add9 bloom
     t = h['浪潮']
-    s.note('timp', t, 2.0, 'D2', 110)
-    s.note('okit', t, 3.0, 59, 100)
+    tutti(s, t, 'D1', ['D4', 'A4', 'D5', 'F#5'], vel=112, crash_db=-18)
     s.add('perc', t, S.soft_kick(0.5), gain_db=-4)
     s.chord('piano', t, 3.8, ['D1', 'D2', 'A3', 'D4', 'F#4', 'E5'], 78, roll=0.02)
     s.pedal('piano', t + 0.02, t + 3.8)
@@ -774,6 +793,8 @@ def c_march(s):
     s.nb('cbass', 53, 6, 'D2', 90)
     s.gliss('harp', t + 0.9, t + 2.3, ['D6', 'B5', 'A5', 'F#5', 'E5', 'D5', 'B4', 'A4'], vel=55, vel_end=40, dur=1.5)
     # ---- path: reflective walk, warm strings to a soft peak at 命题
+    s.chord('piano', h['path'], 2.4, ['B1', 'B2', 'F#3', 'D4'], 60, roll=0.02)
+    s.note('cbass', h['path'], 2.4, 'B1', 64)
     for i, (b0, ch) in enumerate(seg4):
         piano_flow(s, g, b0, b0 + 4, ch, vel=42 + i * 0.6, pat=(0, 2, 3, 4, 5, 4, 3, 2))
         if i >= 2:
@@ -813,9 +834,12 @@ def c_march(s):
     t = h['命题']
     pad(s, 'strings', g, 115, 119, ['D3', 'A3', 'E4', 'F#4', 'A4'], 70)
     s.expr('strings', [(t, 108), (t + 2.2, 60)])
-    s.chord('piano', t, 2.6, ['D2', 'A2', 'F#4', 'A4', 'E5'], 58, roll=0.03)
+    s.chord('piano', t, 2.6, ['D2', 'A2', 'F#4', 'A4', 'E5'], 68, roll=0.012)
     s.pedal('piano', t + 0.02, t + 2.5)
-    s.gliss('harp', t - 0.5, t, ['A4', 'B4', 'D5', 'E5', 'F#5', 'A5', 'D6'], vel=46, vel_end=64, dur=2.0)
+    s.gliss('harp', t - 0.5, t - 0.06, ['A4', 'B4', 'D5', 'E5', 'F#5', 'A5'], vel=40, vel_end=54, dur=2.0)
+    s.chord('harp', t, 2.5, ['D4', 'A4', 'D5', 'F#5'], 70)
+    s.note('timp', t, 1.5, 'D2', 60)
+    s.note('okit', t, 2.5, 59, 58)
     s.chord('oohs', t, 2.4, ['D4', 'F#4', 'A4'], 60)
     s.op('fadeout', s.t1 - 0.1, s.t1 + 0.9)
 
@@ -944,8 +968,8 @@ def c_merge(s):
     for k in range(12):
         b = 8 + k / 3
         s.nb('taiko', b, 0.3, 'A1', 36 + 5 * k, legato=1.0)
-    s.gliss('harp', h['相通'] - 0.5, h['相通'], ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5', 'A5'],
-            vel=48, vel_end=76, dur=2.5)
+    s.gliss('harp', h['相通'] - 0.5, h['相通'] - 0.06, ['D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5'],
+            vel=40, vel_end=58, dur=2.5)
     # MAIN THEME, full (bars 12-44), dizi over piano + strings + taiko
     b0 = 12
     for bo, d, p, o in theme(0, 32):
@@ -968,7 +992,7 @@ def c_merge(s):
         if bar in (3, 7):
             for k in range(4):
                 s.nb('taiko', b + 2 + k * 0.5, 0.5, 'D2', 58 + 6 * k)
-    s.note('okit', h['相通'], 2.5, 59, 80)
+    tutti(s, h['相通'], 'D1', ['D4', 'A4', 'D5'], vel=86, dur=0.5, taiko=False)
     # lighter under unique_*: koto + piano, strings soft (Bm | G | Em | A)
     for i, ch in enumerate(['Bm', 'G', 'Em', 'A']):
         b = 44 + 4 * i
@@ -980,19 +1004,19 @@ def c_merge(s):
     s.dizi(g(44.0), g.d(44, 1.0), 'F#5', vel=60, grace='E5')
     s.dizi(g(45.0), g.d(45, 3.0), 'D5', vel=58, end_level=0.3)
     # shimmer build to 越珍贵
-    s.expr('strings', [(g(44), 62), (g(56), 55), (g(60), 65), (g(68) - 0.05, 122)])
+    s.expr('strings', [(g(44), 62), (g(56), 55), (g(60), 65), (g(68) - 0.05, 100)])
     for b0_, ch in [(60, 'G'), (64, 'A')]:
         pad(s, 'strings', g, b0_, b0_ + 4, MARCH_V[ch] + [N('A4') if ch == 'A' else N('B4')], 72)
         s.nb('cbass', b0_, 4, root(ch, 1) + 12, 76)
         pad(s, 'choir', g, b0_, b0_ + 4, voicing(ch, 62, 76, 3, skip=0), 64)
         for k in range(16):
-            tt_ = tones(ch, 79, 93)
+            tt_ = tones('D6', 81, 93) if ch == 'G' else tones(ch, 79, 93)   # never G against the dizi's F#
             s.nb('celesta', b0_ + k * 0.25, 0.3, tt_[k % len(tt_)], 28 + (k + (b0_ - 60) * 4) * 0.7)
-    s.expr('choir', [(g(60), 30), (g(68) - 0.05, 118)])
+    s.expr('choir', [(g(60), 30), (g(68) - 0.05, 100)])
     sh = S.shimmer(g(68) - g(60), [N(p) for p in ['A6', 'B6', 'D7', 'E7', 'F#7', 'A7']], density=22, seed=24)
     s.add('bells', g(60), sh * ramp(len(sh), 0.2, 1.0, 'exp')[:, None], gain_db=-21, ir='hall', send=0.4)
     for k in range(24):
-        s.nb('taiko', 62 + k / 4, 0.25, 'A1', 40 + 2.6 * k, legato=1.0)
+        s.nb('taiko', 62 + k / 4, 0.25, 'A1', 36 + 1.8 * k, legato=1.0)
     s.dizi(g(60), g.d(60, 1.5), 'A4', vel=76, slide=-2)
     s.dizi(g(61.5), g.d(61.5, 0.5), 'B4', vel=76)
     s.dizi(g(62), g.d(62, 1.5), 'F#5', vel=80, grace='E5')
@@ -1010,11 +1034,9 @@ def c_merge(s):
     s.chord('choir', t, 2.4, ['D4', 'F#4', 'A4', 'E5'], 80)
     s.chord('piano', t, 2.8, ['D1', 'D2', 'A3', 'F#4', 'B4', 'E5'], 80, roll=0.02)
     s.pedal('piano', t + 0.02, t + 2.6)
-    s.note('timp', t, 1.8, 'D2', 104)
-    s.note('taiko', t, 1.8, 'D2', 104)
-    s.note('okit', t, 3.0, 59, 106)
+    tutti(s, t, 'D1', ['D4', 'A4', 'D5', 'F#5'], vel=110, crash_db=-20)
     s.gliss('harp', t, t + 0.8, ['D5', 'E5', 'F#5', 'A5', 'B5', 'D6', 'E6', 'F#6'], vel=60, vel_end=44, dur=1.5)
-    s.op('fadeout', s.t1 - 0.2, s.t1 + 1.5)
+    s.op('fadeout', s.t1 - 0.2, s.t1 + 1.1)
 
 
 def c_youth(s):
@@ -1088,16 +1110,15 @@ def c_timbre(s):
     for b in np.arange(23, 25, 1 / 6):
         s.nb('timp', b, 0.2, 'A1', 50 + (b - 23) * 30, legato=1.0)
     t = h['stamp']
-    s.note('taiko', t, 1.5, 'D2', 127)
-    s.note('timp', t, 2.0, 'D2', 118)
+    tutti(s, t, 'D1', ['D4', 'A4', 'D5', 'F#5'], vel=118, dur=0.8)
     s.chord('violins', t, 2.2, ['D4', 'A4', 'D5', 'F#5'], 104)
     s.chord('cbass', t, 2.2, ['D2'], 104)
     s.chord('piano', t, 2.0, ['D1', 'D2', 'A2'], 96)
     s.note('okit', t, 2.0, 59, 96)
     s.expr('violins', [(t, 120), (t + 2.0, 45)])
     rc = S.reverse_cymbal(1.35, seed=25)
-    s.add('perc', s.t1 - 1.35, rc, gain_db=-12)
-    s.op('fadeout', s.t1 - 0.12, s.t1 + 0.25)
+    s.add('perc', s.t1 - 1.35, rc, gain_db=-22)
+    s.op('fadeout', s.t1 - 0.2, s.t1 + 0.3)
 
 
 def c_climax(s):
@@ -1108,10 +1129,7 @@ def c_climax(s):
     s.g = g
     t = h['start']
     # big hit: the commodity chord (Bm), then sustained, receding
-    s.note('timp', t, 2.0, 'B1', 124)
-    s.note('taiko', t, 2.0, 'D2', 127)
-    s.note('okit', t, 3.0, 59, 112)
-    s.add('perc', t, S.crash(seed=26, dur=3.0), gain_db=-16)
+    tutti(s, t, 'B0', ['B3', 'D4', 'F#4', 'B4'], vel=122, dur=0.9, crash_db=-16)
     s.chord('piano', t, 3.0, ['B0', 'B1', 'F#2'], 112)
     s.pedal('piano', t + 0.02, t + 2.8)
     s.chord('cbass', t, g.d(0, 6), ['B1'], 110)
@@ -1129,22 +1147,19 @@ def c_climax(s):
         s.chord('horns', g(b), g.d(b, 2), vo[3:5], 92)
         s.chord('choir', g(b), g.d(b, 2), vo[3:], 84)
     for trk in ['cbass', 'cello', 'strings', 'horns', 'choir']:
-        s.expr(trk, [(g(6), 66), (g(10) - 0.05, 127)])
+        s.expr(trk, [(g(6), 60), (g(10) - 0.05, 104)])
     for k, p in enumerate(['D5', 'E5', 'F#5', 'A5']):
         s.nb('violins', 6 + k, 1, p, 80 + 8 * k)
-    s.expr('violins', [(g(6), 70), (g(10) - 0.05, 127)])
+    s.expr('violins', [(g(6), 64), (g(10) - 0.05, 104)])
     for k in range(4 * 8):
         b = 6 + k / 8
-        s.nb('timp', b, 0.15, 'A1', 50 + 2.4 * k, legato=1.0)
+        s.nb('timp', b, 0.15, 'A1', 40 + 1.6 * k, legato=1.0)
     rc = S.reverse_cymbal(2.4, seed=27)
-    s.add('perc', h['apex'] - 2.4, rc, gain_db=-11)
+    s.add('perc', h['apex'] - 2.4, rc, gain_db=-21)
     # apex 作品: D add9 tutti, cymbal + choir
     t = h['apex']
-    s.note('timp', t, 2.5, 'D2', 127)
-    s.note('taiko', t, 2.0, 'D2', 120)
-    s.note('okit', t, 4.0, 59, 120)
+    tutti(s, t, 'D1', ['D4', 'F#4', 'A4', 'D5', 'E5'], vel=127, dur=1.0, crash_db=-13)
     s.note('okit', t, 4.0, 57, 100)
-    s.add('perc', t, S.crash(seed=28, dur=4.0), gain_db=-13)
     s.chord('piano', t, 4.0, ['D1', 'D2', 'A2', 'D4', 'F#4', 'A4', 'E5'], 110, roll=0.015)
     s.pedal('piano', t + 0.02, t + 4.0)
     D_ = g.d(10, 16) + 0.3
@@ -1190,14 +1205,17 @@ def c_finale(s):
     s.expr('strings', [(546.0, 25), (tb - 0.05, 112)])
     s.chord('cbass', 546.0, tb - 546.0 + 0.05, ['A1'], 70)
     s.expr('cbass', [(546.0, 30), (tb - 0.05, 100)])
-    s.gliss('harp', tb - 0.55, tb, ['A3', 'D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5', 'F#5'], vel=50, vel_end=78, dur=3.0)
+    s.gliss('harp', tb - 0.55, tb - 0.06, ['A3', 'D4', 'E4', 'F#4', 'A4', 'B4', 'D5', 'E5'], vel=42, vel_end=60, dur=3.0)
+    s.chord('harp', tb, 3.0, ['D3', 'A3', 'F#4', 'D5', 'F#5'], 76)
     T = h['end_card'] - tb
     s.chord('strings', tb, T + 0.05, ['D3', 'A3', 'E4', 'F#4', 'A4'], 84)
     s.chord('cbass', tb, T + 0.05, ['D2'], 90)
     s.chord('cello', tb, T + 0.05, ['D3', 'A3'], 84)
     s.chord('horns', tb, T + 0.05, ['A3', 'F#4'], 70)
     s.chord('choir', tb, T + 0.05, ['D4', 'F#4', 'A4', 'E5'], 80)
-    s.chord('piano', tb, T, ['D1', 'D2', 'A3', 'F#4', 'E5'], 74, roll=0.02)
+    s.chord('piano', tb, T, ['D1', 'D2', 'A3', 'F#4', 'E5'], 84, roll=0.012)
+    s.note('timp', tb, 2.0, 'D2', 66)
+    s.note('okit', tb, 3.0, 59, 64)
     s.pedal('piano', tb + 0.02, h['end_card'] - 0.04)
     for trk in ['strings', 'cello', 'horns', 'choir']:
         s.expr(trk, [(tb, 112), (tb + 0.6, 122), (h['end_card'] - 0.05, 100)])
@@ -1243,7 +1261,10 @@ COMPOSERS = {
 }
 
 # section gain trims (dB) after listening-by-numbers in qa.py
-SECTION_TRIM = {'loud': -4, 'traffic': -3, 'craft': 3, 'youth': 4, 'books': 3}
+SECTION_TRIM = {'open': -0.4, 'loud': -10.0, 'night': 4.5, 'craft': 4.5, 'cruel': 0.0, 'traffic': -6.5,
+                'realize': -1.2, 'tracks': 1.9, 'market': 0.0, 'irony': 4.2, 'painter': 0.2, 'me': -2.0,
+                'march': -0.2, 'books': 8.5, 'roots': -1.0, 'copy': -2.2, 'merge': -3.2, 'youth': 10.4,
+                'timbre': -2.9, 'climax': -5.7, 'finale': -2.4}
 
 
 def silence_windows(cues):
