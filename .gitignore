@@ -95,3 +95,8 @@ fix-deploy.py
 
 # Ngrok 错误修复脚本
 fix-ngrok-error.sh
+
+# 视频工程：构建产物与模型（由 video/setup.sh、video/build.sh 生成）
+video/.models/
+video/build/
+video/output/
