@@ -29,7 +29,7 @@ TRACKS = {
     # dizi: GeneralUser 'Tin Whistle' (bank 24) is pitch-stable (no baked-in
     # vibrato), so vibrato / slides / grace notes are all ours via pitch bend;
     # a membrane-buzz + breath layer is added in numpy (proc='dizi').
-    'dizi':    dict(prog=75, bank=24, fam='dizi', pan=0.05, gain=0, ir='hall', send=0.30, proc='dizi', chans=(0, 1, 2)),
+    'dizi':    dict(prog=75, bank=24, fam='dizi', pan=0.05, gain=10, ir='hall', send=0.30, proc='dizi', chans=(0, 1, 2)),
     'koto':    dict(prog=107, bank=0, fam='guzheng', pan=-0.30, gain=0, ir='hall', send=0.22, chans=(0, 1, 2)),
     'harp':    dict(prog=46, bank=0, fam='guzheng', pan=0.30, gain=-1, ir='hall', send=0.30),
     'piano':   dict(prog=0, bank=0, fam='piano', pan=0.0, gain=0, ir='hall', send=0.22, proc='piano'),

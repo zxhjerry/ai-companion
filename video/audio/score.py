@@ -146,7 +146,7 @@ def c_open(s):
     h = s.hits
     # low D drone (D1/D2/A2), breathing; recedes before the quiet line
     dr = S.sub_drone(14.8, [hz('D1'), hz('D2'), hz('A2')], [1.0, 0.6, 0.15], attack=3.0, release=2.2, grit=0.06, seed=1)
-    s.add('synth', 0.0, dr, gain_db=-11, ir='big', send=0.12)
+    s.add('synth', 0.0, dr, gain_db=-17, ir='big', send=0.12)
     # breath -> solo dizi long note: scoop from F#4 into A4, vibrato, soft fall
     s.dizi(0.62, 2.45, 'A4', vel=74, slide=-3, slide_t=0.42, vib=0.2, vib_delay=0.7, fall=-1.0, fall_t=0.4,
            attack=0.5, end_level=0.35)
@@ -266,6 +266,7 @@ def felt_bar(s, g, b, ch, vel=40, top=True):
 
 def c_night(s):
     h = s.hits
+    s.fx['felt'] = dict(gain=5)
     g1 = Grid([s.t0, h['quote_in']], 70, nbeats=[16])
     for i, ch in enumerate(['G', 'F#m', 'Bm', 'A']):
         felt_bar(s, g1, i * 4, ch, vel=40 + 2 * i)
@@ -277,9 +278,9 @@ def c_night(s):
     s.chord('felt', t, 3.0, ['B1', 'B2'], 34)
     s.pedal('felt', t + 0.02, t + 3.0)
     x = S.warm_pad(6.4, [N(p) for p in ['B2', 'F#3', 'A3', 'D4', 'E4']], attack=1.6, release=1.4, cutoff=1100, seed=5)
-    s.add('pads', t, x, gain_db=-15, ir='hall', send=0.35)
+    s.add('pads', t, x, gain_db=-19, ir='hall', send=0.35)
     x = S.warm_pad(6.6, [N(p) for p in ['G2', 'D3', 'A3', 'B3', 'E4']], attack=1.2, release=1.6, cutoff=1000, seed=6)
-    s.add('pads', 42.7, x, gain_db=-16, ir='hall', send=0.35)
+    s.add('pads', 42.7, x, gain_db=-20, ir='hall', send=0.35)
     # after the quote: koto answers, piano returns warmer
     s.koto(47.85, 'D5', 60, dur=1.0)
     s.koto(48.12, 'B4', 56, dur=1.0)
@@ -290,7 +291,7 @@ def c_night(s):
     # vinyl bed through the whole scene
     v = S.vinyl(s.t1 - s.t0 + 1.2, seed=7)
     v = fade(v, 1.5, 1.2)
-    s.add('synth', s.t0, v, gain_db=-21)
+    s.add('synth', s.t0, v, gain_db=-28)
     s.op('fadeout', s.t1, s.t1 + 1.0)
 
 
@@ -366,9 +367,9 @@ def c_cruel(s):
     s.expr('strings', [(97.95, 10), (101.6, 85), (s.t1, 95)])
     # sub pulse on every beat, doubling into a heartbeat in the second half
     for b in range(12):
-        s.add('synth', g(b), S.sub_pulse(hz('B1'), 0.7), gain_db=-9 + (2 if b >= 6 else 0))
+        s.add('synth', g(b), S.sub_pulse(hz('B1'), 0.7), gain_db=-14 + (2 if b >= 6 else 0))
         if b >= 6:
-            s.add('synth', g(b + 0.28), S.sub_pulse(hz('B1'), 0.5), gain_db=-14)
+            s.add('synth', g(b + 0.28), S.sub_pulse(hz('B1'), 0.5), gain_db=-19)
     s.op('fadeout', s.t1 - 0.35, s.t1 + 0.25)
 
 
@@ -670,7 +671,7 @@ def c_painter(s):
 
 def c_me(s):
     h = s.hits
-    s.fx['felt'] = dict(ir='big', send=0.65, gain=-3)
+    s.fx['felt'] = dict(ir='big', send=0.65, gain=3)
     T = h['silence'] - s.t0
     # introspective drone, with the dark swell to 迷茫 built into its envelope
     dr = S.sub_drone(T, [hz('B1'), hz('F#2'), hz('B2')], [1, 0.5, 0.25], attack=3.0, release=2.5, grit=0.08, seed=18)
@@ -741,13 +742,13 @@ def c_march(s):
         pad(s, 'strings', g, b0, b0 + nbt, MARCH_V[ch], 56)
     for b in np.arange(3, 53, 0.25):
         acc = 1.0 if (b * 2) % 1 == 0 else 0.6
-        s.add('perc', g(b), S.shaker(seed=int(b * 8), accent=acc), gain_db=-22 + (2 if b >= 27 else 0), pan=0.35)
+        s.add('perc', g(b), S.shaker(seed=int(b * 8), accent=acc), gain_db=-28 + (2 if b >= 27 else 0), pan=0.35)
     for b in range(3, 53):
         q = (b - 3) % 4
         if q in (0, 2):
-            s.add('perc', g(b), S.soft_kick(), gain_db=-10)
+            s.add('perc', g(b), S.soft_kick(), gain_db=-14)
         if b >= 27 and q in (1, 3):
-            s.add('perc', g(b), S.clap(seed=b, tone=1200), gain_db=-17, pan=-0.1)
+            s.add('perc', g(b), S.clap(seed=b, tone=1200), gain_db=-22, pan=-0.1)
     # break_out: bright dizi call over the first downbeat
     s.dizi(g(3), g.d(3, 2.2), 'A5', vel=70, slide=-3, slide_t=0.22, vib=0.22, end_level=0.4)
     # ---- swell into 浪潮
@@ -788,7 +789,7 @@ def c_march(s):
                 s.add('perc', g(b0 + 2), S.soft_kick(), gain_db=-15)
         if i >= 5:
             for b in np.arange(b0, b0 + 4, 0.5):
-                s.add('perc', g(b), S.shaker(seed=int(b * 4) + 900, accent=0.7), gain_db=-25, pan=0.35)
+                s.add('perc', g(b), S.shaker(seed=int(b * 4) + 900, accent=0.7), gain_db=-30, pan=0.35)
     s.expr('strings', [(g(75), 35), (g(99), 80), (g(115) - 0.05, 108)])
     # theme b-phrase on dizi landing on 1' exactly at 命题
     tb = theme(16, 28)
@@ -886,7 +887,7 @@ def c_copy(s):
         if stage >= 2 and k % 8 == 6:
             p = N('F#3')
         x = S.pluck_synth(g.d(b, 0.22), p, bright=900 + 700 * stage, decay=0.06 + 0.01 * stage, wave='square')
-        s.add('synth', g(b), x, gain_db=-12 + 1.2 * stage + (2 if k % 4 == 0 else 0), pan=-0.15)
+        s.add('synth', g(b), x, gain_db=-20 + 1.2 * stage + (2 if k % 4 == 0 else 0), pan=-0.15)
         if k % 2 == 0:
             s.add('perc', g(b), S.tick(seed=700 + k, freq=4800, wood=False), gain_db=-27 + stage, pan=0.4)
     # c1 / c2 / c3: each 复制不了 adds a layer; the third is the biggest
@@ -986,10 +987,10 @@ def c_merge(s):
         pad(s, 'choir', g, b0_, b0_ + 4, voicing(ch, 62, 76, 3, skip=0), 64)
         for k in range(16):
             tt_ = tones(ch, 79, 93)
-            s.nb('celesta', b0_ + k * 0.25, 0.3, tt_[k % len(tt_)], 36 + (k + (b0_ - 60) * 4) * 0.9)
+            s.nb('celesta', b0_ + k * 0.25, 0.3, tt_[k % len(tt_)], 28 + (k + (b0_ - 60) * 4) * 0.7)
     s.expr('choir', [(g(60), 30), (g(68) - 0.05, 118)])
     sh = S.shimmer(g(68) - g(60), [N(p) for p in ['A6', 'B6', 'D7', 'E7', 'F#7', 'A7']], density=22, seed=24)
-    s.add('bells', g(60), sh * ramp(len(sh), 0.2, 1.0, 'exp')[:, None], gain_db=-14, ir='hall', send=0.4)
+    s.add('bells', g(60), sh * ramp(len(sh), 0.2, 1.0, 'exp')[:, None], gain_db=-21, ir='hall', send=0.4)
     for k in range(24):
         s.nb('taiko', 62 + k / 4, 0.25, 'A1', 40 + 2.6 * k, legato=1.0)
     s.dizi(g(60), g.d(60, 1.5), 'A4', vel=76, slide=-2)
@@ -1051,6 +1052,8 @@ def c_youth(s):
 
 def c_timbre(s):
     h = s.hits
+    s.fx['taiko'] = dict(gain=-5)
+    s.fx['timp'] = dict(gain=-3)
     g = Grid([s.t0, h['swell'], h['stamp']], 72, nbeats=[9, 16])
     s.g = g
     # pickup: guzheng sweep
@@ -1099,6 +1102,8 @@ def c_timbre(s):
 
 def c_climax(s):
     h = s.hits
+    s.fx['taiko'] = dict(gain=-3)
+    s.fx['timp'] = dict(gain=-2)
     g = Grid([s.t0, h['apex'], h['fade_out_end']], 76, nbeats=[10, 16])
     s.g = g
     t = h['start']
@@ -1238,7 +1243,7 @@ COMPOSERS = {
 }
 
 # section gain trims (dB) after listening-by-numbers in qa.py
-SECTION_TRIM = {}
+SECTION_TRIM = {'loud': -4, 'traffic': -3, 'craft': 3, 'youth': 4, 'books': 3}
 
 
 def silence_windows(cues):
@@ -1267,6 +1272,21 @@ def main():
         if not any(o[0] in ('fadeout', 'cut') for o in s.ops):
             s.op('fadeout', s.t1, s.t1 + s.xfade)
         secs.append(s)
+    # note list for QA (pitch checks)
+    import json
+    notes = []
+    for s in secs:
+        for trk, evs in s.ev.items():
+            on = {}
+            for t, pr, kind, d in sorted(evs, key=lambda e: (e[0], e[1])):
+                if kind == 'on':
+                    on[(d[0], d[1])] = (t, d[2])
+                elif kind == 'off' and (d[0], d[1]) in on:
+                    t0_, v = on.pop((d[0], d[1]))
+                    notes.append(dict(sec=s.key, trk=trk, t=round(t0_, 4), dur=round(t - t0_, 4), p=d[1], v=v))
+    os.makedirs(os.path.join(BUILD, 'score_work'), exist_ok=True)
+    with open(os.path.join(BUILD, 'score_work', 'notes.json'), 'w') as fh:
+        json.dump(notes, fh)
     print(f'composed {len(secs)} sections, {sum(len(v) for s in secs for v in s.ev.values())} midi events '
           f'({time.time() - t_start:.1f}s)')
     wavs, nr = render_sections(secs)

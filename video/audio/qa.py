@@ -19,6 +19,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
 
 QA = os.path.join(BUILD, 'qa')
+ASCII = {'最难': 'zuinan', '被看见': 'beikanjian', '耗时间': 'haoshijian', '耐寂寞': 'naijimo', '慢打磨': 'mandamo',
+         '不讨巧': 'butaoqiao', '浪潮': 'langchao', '命题': 'mingti', '生命力': 'shengmingli', '相通': 'xiangtong'}
 
 
 def lufs(x):
@@ -67,10 +69,11 @@ def spectrogram_png(x, path, title, cues, t0=0.0, t1=None, rows=6, fmax=8000):
             if a <= s['t0'] <= b:
                 ax.axvline(s['t0'], color='cyan', lw=1.2)
                 ax.text(s['t0'] + 0.2, fmax * 0.92, s['key'], color='cyan', fontsize=9)
-            for hk, ht in s['hits'].items():
+            for hi_, (hk, ht) in enumerate(s['hits'].items()):
                 if a <= ht <= b:
                     ax.axvline(ht, color='lime', lw=0.7, ls='--')
-                    ax.text(ht + 0.1, fmax * 0.80, hk, color='lime', fontsize=7)
+                    lab = hk if hk.isascii() else ASCII.get(hk, f'hit{hi_}')
+                    ax.text(ht + 0.1, fmax * 0.80, lab, color='lime', fontsize=7)
         for sa, sb in cues['speech']:
             if sb > a and sa < b:
                 ax.plot([max(a, sa), min(b, sb)], [fmax * 0.02] * 2, color='white', lw=3)
@@ -100,17 +103,19 @@ def envelope_png(tracks, path, cues, title):
     plt.close(fig)
 
 
-def onset_error(x, t, search=0.08, pre=0.15):
-    """time of the steepest energy rise near t (5 ms frames) minus t"""
-    y = np.abs(to_stereo(seg(x, t - pre, t + search)).mean(axis=1))
-    L = int(0.005 * SR)
-    k = len(y) // L
-    if k < 3:
-        return None
-    e = np.sqrt(np.mean(y[:k * L].reshape(k, L) ** 2, axis=1)) + 1e-9
-    d = np.diff(20 * np.log10(e))
-    i = int(np.argmax(d))
-    return (t - pre) + (i + 1) * 0.005 - t
+def accent(x, t):
+    """(jump_dB, onset_ms): level jump at a hit, comparing 70 ms after vs
+    the 90 ms before it, and the steepest 2.5 ms rise within +/-40 ms."""
+    y = np.abs(to_stereo(seg(x, t - 0.1, t + 0.07)).mean(axis=1))
+    i = int(0.1 * SR)
+    pre = np.sqrt(np.mean(y[:i - int(0.01 * SR)] ** 2) + 1e-12)
+    post = np.sqrt(np.mean(y[i:] ** 2) + 1e-12)
+    z = np.abs(to_stereo(seg(x, t - 0.04, t + 0.04)).mean(axis=1))
+    L = int(0.0025 * SR)
+    k = len(z) // L
+    e = 20 * np.log10(np.sqrt(np.mean(z[:k * L].reshape(k, L) ** 2, axis=1)) + 1e-9)
+    j = int(np.argmax(np.diff(e)))
+    return 20 * np.log10(post / pre), ((j + 1) * L / SR - 0.04) * 1000
 
 
 def main():
@@ -143,18 +148,19 @@ def main():
     print(f'   near-silence 太安静了 {s0["quiet_start"]:.2f}-{s0["quiet_end"]:.2f}: rms '
           f'{a2db(np.sqrt(np.mean(y ** 2))):.1f} dBFS, peak {a2db(np.max(np.abs(y))):.1f} dBFS (target: quiet)')
     print('   ALL SILENCES OK' if ok_all else '   SILENCE CHECK FAILED')
-    print('-- hit accents: onset found in music near each hit (ms, + = late)')
-    errs = []
+    print('-- hit accents in music.wav: level jump at the hit (dB) and steepest-rise offset (ms)')
+    nacc = 0
+    tot = 0
     for s in cues['sections']:
         for hk, ht in s['hits'].items():
-            if hk in ('silence', 'fade_out_end', 'cut', 'stop', 'quiet_start', 'quiet_end', 'riser_end', 'swell'):
+            if hk in ('silence', 'fade_out_end', 'cut', 'stop', 'quiet_end', 'riser_end'):
                 continue
-            e = onset_error(music, ht)
-            if e is not None:
-                errs.append((s['key'], hk, ht, e * 1000))
-    for k, hk, ht, e in errs:
-        flag = '' if abs(e) <= 25 else '  <-- check'
-        print(f'   {k:8s} {hk:12s} {ht:8.3f}  {e:+6.0f} ms{flag}')
+            jd, off = accent(music, ht)
+            tot += 1
+            nacc += jd >= 3
+            print(f'   {s["key"]:8s} {hk:12s} {ht:8.3f}  jump {jd:+6.1f} dB  onset {off:+5.1f} ms'
+                  f'{"" if jd >= 3 else "   (soft entry / swell)"}')
+    print(f'   {nacc}/{tot} hits show a >= 3 dB attack exactly at the hit')
     spectrogram_png(music, os.path.join(QA, 'music_spectrogram.png'), 'music.wav', cues)
     if music_only:
         envelope_png([('music', music, 'tab:blue')], os.path.join(QA, 'music_envelope.png'), cues, 'music RMS (100 ms)')
