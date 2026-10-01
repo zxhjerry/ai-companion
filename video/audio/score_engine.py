@@ -183,7 +183,14 @@ class Sec:
         if isinstance(p, str):
             p = nm(p)
         if ch is None:
-            ch = 9 if TRACKS[trk].get('drum') else TRACKS[trk].get('chans', (0,))[0]
+            if TRACKS[trk].get('drum'):
+                ch = 9
+            elif 'chans' in TRACKS[trk]:
+                # bendable track: take the next round-robin channel, reset its bend
+                ch = self.chan(trk)
+                self.bend(trk, t - 0.004, 0.0, ch)
+            else:
+                ch = 0
         if human:
             rng = np.random.default_rng(seed if seed is not None else int(t * 1000) + p)
             t += rng.uniform(-human, human)
@@ -241,7 +248,9 @@ class Sec:
             self.note(trk, t - grace_t, grace_t + 0.015, gp, vel * 0.9, ch=gc)
         ch = self.chan(trk)
         step = 0.011
-        tt = np.arange(t - 0.006, t + dur + 0.3, step)
+        expressive = bool(slide) or bool(fall) or (vib and dur > vib_delay + 0.12)
+        tail = 0.12 if expressive else 0.0
+        tt = np.arange(t - 0.006, t + dur + tail, step) if expressive else np.array([t - 0.006])
         bend = np.zeros(len(tt))
         x = tt - t
         if slide:
@@ -520,7 +529,7 @@ def assemble(sec, wavs):
         x = x[:sec.n]
         spec = dict(TRACKS[trk])
         spec.update(sec.fx.get(trk, {}))
-        x = proc_track(x, spec.get('proc'), seed=hash(trk) % 1000)
+        x = proc_track(x, spec.get('proc'), seed=sum(map(ord, trk)))
         x = x * db2a(spec['gain'])
         f = spec['fam']
         fam.setdefault(f, np.zeros((sec.n, 2)))
