@@ -60,6 +60,8 @@ PHRASES = {
 FINAL = {
     '独一无二': 'dú yī wú èr', '一辈子': 'yí bèi zi', '刺激': 'cì jī', '层层': 'céng céng',
     '提醒我': 'tí xíng wǒ', '肌理与': 'jī lí yǔ', '厚厚': 'hòu hòu',
+    '一刀一刻': 'yì dāo yí kè', '一锤一磨': 'yì chuí yì mó', '一笔一画': 'yì bǐ yí huà',
+    '一笔一笔': 'yì bǐ yì bǐ', '一模一样': 'yì mú yí yàng', '第一步': 'dì yī bù', '第一眼': 'dì yī yǎn',
 }
 # Characters whose reading is the same everywhere in this script.
 SINGLE = {'着': 'zhe', '调': 'tiáo', '地': 'de,dì'}
